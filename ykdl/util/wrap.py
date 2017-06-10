@@ -8,11 +8,30 @@ from logging import getLogger
 logger = getLogger("wrap")
 
 from ykdl.compact import compact_tempfile
+from .html import fake_headers
 
 
 def launch_player(player, urls):
     if 'mpv' in player:
-        cmd = shlex.split(player) + ['--demuxer-lavf-o=protocol_whitelist=[file,tcp,http]'] + list(urls)
+        ua_flg = ''
+        referer_flg = ''
+#bilibili hacks
+        is_bili_cdn = False
+        for url in urls:
+            if 'acgvideo.com' in url:
+                is_bili_cdn = True
+                break
+
+        if is_bili_cdn:
+            ua_flg = '--user-agent={0}'.format(fake_headers['User-Agent'])
+            referer_flg = '--referrer=http://bilibili.com'
+
+        cmd = shlex.split(player)
+        if ua_flg:
+            cmd += [ua_flg]
+        if referer_flg:
+            cmd += [referer_flg]
+        cmd = cmd + ['--demuxer-lavf-o=protocol_whitelist=[file,tcp,http]'] + list(urls)
     else:
         cmd = shlex.split(player) + list(urls)
     subprocess.call(cmd)
